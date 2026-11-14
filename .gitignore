@@ -1,0 +1,12 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+.env
+
+# NLTK local data downloads (if downloaded inside the folder)
+nltk_data/
