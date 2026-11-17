@@ -1,50 +1,46 @@
-non_terminals = ['NP', 'Noun', 'Det', 'AP', 'Adv']
-
-# Converted strictly to Chomsky Normal Form (CNF)
-R = {
-    "NP": [["Det", "Noun"]], 
-    
-    # Added ["Noun", "Noun"] so "orange" and "man" can combine
-    "Noun": [["AP", "Noun"], ["Noun", "Noun"], ["book"], ["orange"], ["man"]], 
-    
-    "Det": [["a"], ["the"]],
-    
-    "AP": [["Adv", "AP"], ["tall"]], 
-    
-    "Adv": [["very"]]
+# 1. Chomsky Normal Form (CNF) Grammar
+grammar = {
+    "S": [["NP", "VP"]],
+    "NP": [["Det", "Nominal"], ["Det", "Noun"]],
+    "Nominal": [["AP", "Noun"]],
+    "VP": [["Verb", "NP"]],
+    "AP": [["tall"]],
+    "Det": [["the"], ["a"]],
+    "Noun": [["student"], ["book"]],
+    "Verb": [["reads"]]
 }
 
-def cykParse(w):
-    n = len(w)
-    # Initialize the n x n matrix with empty sets
-    T = [[set() for j in range(n)] for i in range(n)]
+def cyk_parser(sentence):
+    n = len(sentence)
+    # Create an n x n table filled with empty lists
+    table = [[[] for _ in range(n)] for _ in range(n)]
+    
+    # Step 1: Fill the diagonal cells (Single words)
+    for i, word in enumerate(sentence):
+        for parent, rules in grammar.items():
+            for rule in rules:
+                if len(rule) == 1 and rule[0] == word:
+                    table[i][i].append(parent)
+                    
+    # Step 2: Fill the rest of the table (Combining spans)
+    for length in range(2, n + 1):          # Span length (2 to n)
+        for start in range(n - length + 1): # Start position
+            end = start + length - 1        # End position
+            
+            for split in range(start, end): # Split point
+                left = table[start][split]
+                right = table[split + 1][end]
+                
+                for parent, rules in grammar.items():
+                    for rule in rules:
+                        # Check binary rules (A -> B C)
+                        if len(rule) == 2 and rule[0] in left and rule[1] in right:
+                            if parent not in table[start][end]:
+                                table[start][end].append(parent)
 
-    for j in range(0, n):
-        # Step 1: Fill the diagonal with Terminal rules
-        for lhs, rule in R.items():
-            for rhs in rule:
-                if len(rhs) == 1 and rhs[0] == w[j]:
-                    T[j][j].add(lhs)
-
-        # Step 2: Fill the rest of the matrix with Non-Terminal rules
-        for i in range(j, -1, -1):
-            for k in range(i, j):
-                for lhs, rule in R.items():
-                    for rhs in rule:
-                        # Only check strict length-2 CNF rules
-                        if len(rhs) == 2 and rhs[0] in T[i][k] and rhs[1] in T[k+1][j]:
-                            T[i][j].add(lhs)
-
-    # Optional: Print matrix in a cleaner way for debugging
-    # for row in T:
-    #     print(row)
-
-    # If 'NP' is in the top-right corner of the matrix, it's a valid sentence
-    if "NP" in T[0][n-1]:
-        print("True")
-    else:
-        print("False")
+    # Step 3: Check top-right corner for Start symbol 'S'
+    return "S" in table[0][n - 1]
 
 # Test the program
-w = "a very tall orange man".split()
-cykParse(w)
+sentence = "the tall student reads a book".split()
+print("Is the sentence valid?", cyk_parser(sentence))
